@@ -4,6 +4,7 @@ import 'package:sports_village/Models/slots_model.dart';
 
 class SlotReservation {
   final CollectionReference slots = FirebaseFirestore.instance.collection("slots");
+  final CollectionReference users = FirebaseFirestore.instance.collection("users");
 
   Future<void> addSlot({required String userID, required String dateSelected, required int arena, required List<int> pickedSlots}) async {
     String pickedArena = arena == 0 ? "arena1" : arena == 1 ? "arena2" : "arena3";  

@@ -49,7 +49,7 @@ class ConfirmPage extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 20),
           margin: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
           decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(10),
               color: Colors.white,
               boxShadow: [
                 BoxShadow(
@@ -115,7 +115,7 @@ class ConfirmPage extends StatelessWidget {
                   padding: EdgeInsets.symmetric(
                       vertical: 20, horizontal: width * .3),
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(30),
+                    borderRadius: BorderRadius.circular(10),
                     color: HexColor('c41111'),
                   ),
                   child: _buttonText("Confirm"),

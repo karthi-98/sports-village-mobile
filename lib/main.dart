@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/cupertino.dart';
@@ -12,6 +13,7 @@ import 'package:intl/intl.dart';
 import 'package:sports_village/Bloc/bloc_data.dart';
 import 'package:sports_village/Firebase/auth.dart';
 import 'package:sports_village/Profile/login.dart';
+import 'package:sports_village/Profile/user_profile.dart';
 import 'package:sports_village/utils/colors_util.dart';
 import 'package:sports_village/timeslot/time_slot.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -97,6 +99,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   int _currentPage = 1;
   int dayIndex = 0;
 
+
   @override
   void initState() {
     // _animationController = AnimationController(
@@ -180,7 +183,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
 
   Widget capsuleView(int index) {
     return Padding(
-        padding: const EdgeInsets.fromLTRB(8, 0, 0, 0),
+        padding: const EdgeInsets.fromLTRB(2, 0, 0, 0),
         child: GestureDetector(
           onTap: () {
             setState(() {
@@ -194,26 +197,26 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
-                (currentMonthList[index].day != currentDateTime.day)
-                    ? const SizedBox()
-                    : Container(
-                        width: 5,
-                        height: 5,
-                        decoration: BoxDecoration(
-                            color: HexColor('a23c33'), shape: BoxShape.circle),
-                      ),
-                const SizedBox(
-                  height: 8,
-                ),
+                // (currentMonthList[index].day != currentDateTime.day)
+                //     ? const SizedBox()
+                //     : Container(
+                //         width: 5,
+                //         height: 5,
+                //         decoration: BoxDecoration(
+                //             color: HexColor('a23c33'), shape: BoxShape.circle),
+                //       ),
+                // const SizedBox(
+                //   height: 8,
+                // ),
                 Container(
                   width: 45,
-                  height: 70,
+                  height: 65,
                   decoration: BoxDecoration(
                       color:
                           (currentMonthList[index].day != currentDateTime.day)
                               ? Colors.white
                               : HexColor('a23c33'),
-                      borderRadius: BorderRadius.circular(50)),
+                      borderRadius: BorderRadius.circular(10)),
                   child: Center(
                     child: Column(
                       children: [
@@ -258,7 +261,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 20),
       decoration: BoxDecoration(
-          color: Colors.black87, borderRadius: BorderRadius.circular(50)),
+          color: Colors.black87, borderRadius: BorderRadius.circular(10)),
       child: const Text(
         "Login",
         style: TextStyle(fontSize: 16, color: Colors.white),
@@ -284,14 +287,28 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
               backgroundColor: Colors.white,
               surfaceTintColor: Colors.white,
               child: Center(
-                child: IconButton(
-                    onPressed: () async {
-                      await Auth().signOut();
-                    },
-                    icon: const Icon(
-                      Icons.logout,
-                      color: Colors.black,
-                    )),
+                child: SafeArea(
+                  child: Column(
+                    children: [
+                      ElevatedButton(onPressed: () {
+                        if(Auth().currentUser!.email!.isNotEmpty) {
+                        Navigator.pop(context);
+                        Navigator.of(context).push(MaterialPageRoute(
+                              builder: (context) =>  UserProfile(email: Auth().currentUser!.email!,)));
+                        }
+                      }, child: const Text("Profile Page")),
+                      IconButton(
+                          onPressed: () async {
+                        Navigator.pop(context);
+                            await Auth().signOut();
+                          },
+                          icon: const Icon(
+                            Icons.logout,
+                            color: Colors.black,
+                          )),
+                    ],
+                  ),
+                ),
               ),
             ),
             appBar: AppBar(
@@ -323,11 +340,18 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                 'Hi, ',
                                 style: GoogleFonts.kaushanScript(fontSize: 22),
                               ),
-                              Text(
-                                FirebaseAuth.instance.currentUser!.displayName!
-                                    .toString(),
-                                style: GoogleFonts.kaushanScript(
-                                    fontSize: 22, fontWeight: FontWeight.bold),
+                              StreamBuilder(
+                                stream: FirebaseFirestore.instance.collection('users').where("email", isEqualTo: FirebaseAuth.instance.currentUser!.email).snapshots(),
+                                builder: (context, AsyncSnapshot snapshot) {
+                                  if(snapshot.hasData) {
+                                    return Text(
+                                    snapshot.data.docs[0]['userName'],
+                                    style: GoogleFonts.kaushanScript(
+                                        fontSize: 22, fontWeight: FontWeight.bold),
+                                  );
+                                  }
+                                  return const Text("No name");
+                                }
                               ),
                               const SizedBox(
                                 width: 20,
@@ -348,7 +372,13 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                   : [
                       GestureDetector(
                           onTap: () async {
-                            await Auth().signInWithGoogle();
+                            UserCredential user =
+                                await Auth().signInWithGoogle();
+                            if (user.user!.email
+                                .toString()
+                                .contains("@gmail.com")) {
+                              await Auth().createUser(email: user.user!.email.toString(), userName: user.user!.displayName.toString());
+                            } 
                           },
                           child: _loginButton()),
                       const SizedBox(
@@ -361,24 +391,28 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                 child: Column(
                   children: [
                     Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 10,vertical: 10),
-                      padding: const EdgeInsets.symmetric(horizontal: 15),
+                      margin: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 3),
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
                       decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(color: Colors.grey.withOpacity(.25),spreadRadius: 2,blurRadius: 15,offset: const Offset(0, 5))
-                        ]
-                      ),
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(10),
+                          boxShadow: [
+                            BoxShadow(
+                                color: Colors.grey.withOpacity(.25),
+                                spreadRadius: 2,
+                                blurRadius: 15,
+                                offset: const Offset(0, 5))
+                          ]),
                       child: topView(),
                     ),
                     const SizedBox(
-                      height: 20,
+                      height: 15,
                     ),
                     const Padding(
                       padding: EdgeInsets.symmetric(horizontal: 10),
                       child: Text(
-                        "Select Arena",
+                        "Slide to select ground",
                         style: TextStyle(
                             color: Colors.black,
                             fontSize: 18,
@@ -386,7 +420,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                       ),
                     ),
                     const SizedBox(
-                      height: 30,
+                      height: 20,
                     ),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 10),
@@ -414,27 +448,27 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                       onTap: () {
                         Navigator.of(context).push(MaterialPageRoute(
                             builder: (context) => TimeSlotPage(
-                                date: dateBloc.state, arena: arenaBloc.state,weekDay : date_util.DateUtils
-                              .weekdays[currentMonthList[dayIndex].weekday - 1])));
+                                date: dateBloc.state,
+                                arena: arenaBloc.state,
+                                weekDay: date_util.DateUtils.weekdays[
+                                    currentMonthList[dayIndex].weekday - 1])));
                       },
                       child: Container(
                         padding: EdgeInsets.symmetric(
                             vertical: 20, horizontal: width * .2),
-                            decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(30),
-                          color: HexColor('#c41111'),
-                          boxShadow: [
+                        decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(10),
+                            color: HexColor('#c41111'),
+                            boxShadow: [
                               BoxShadow(
                                   color: Colors.red.withOpacity(.2),
                                   spreadRadius: 2,
                                   blurRadius: 10)
-                            ]
-              
-                        ),
+                            ]),
                         child: Text(
                           "Continue",
-                          style:
-                              TextStyle(color: HexColor('fef2f2'), fontSize: 16),
+                          style: TextStyle(
+                              color: HexColor('fef2f2'), fontSize: 16),
                         ),
                       ),
                     ),
@@ -464,7 +498,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
             height: size.height * .2,
             width: size.width,
             decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(30),
+                borderRadius: BorderRadius.circular(10),
                 image: DecorationImage(
                     image: AssetImage(containerImage[index]),
                     fit: BoxFit.cover)),

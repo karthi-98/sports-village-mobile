@@ -18,15 +18,24 @@ class Auth {
     await _firebaseAuth.signInWithEmailAndPassword(email: email, password: pass);
   }
 
-  Future<void> createUserWithEmailAndPassword ({
+  Future<String> createUser ({
     required String email,
-    required String pass
+    required String userName,
   }) async {
-    await _firebaseAuth.createUserWithEmailAndPassword(email: email, password: pass);
-    users.add({
+    final result = await users.where('email',isEqualTo: email).get();
+    final res = result.docs.isEmpty;
+    late DocumentReference docRef;
+    if(res){
+       docRef =  await users.add({
       'email' : email,
-      'pass' : pass
+      'phoneNumber' : '',
+      'userName': userName,
     });
+
+    return docRef.id;
+    }
+
+    return " ";
   }
 
   Future<String> getUserDocID({required String email}) async {
@@ -35,20 +44,35 @@ class Auth {
     return res;
   }
 
-Future<UserCredential> signInWithGoogle() async {
-  // Trigger the authentication flow
-  final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
+  Future<void> updateUserName(String userName, String docID) async {
+     await users.doc(docID).update({
+      "userName" : userName
+    });
+  }
 
-  // Obtain the auth details from the request
+    Future<void> updatePhoneNumber(String phoneNumber, String docID) async {
+     await users.doc(docID).update({
+      "phoneNumber" : phoneNumber
+    });
+  }
+
+  Stream<DocumentSnapshot> getUserDetailsStream(String documentID) {
+    final docSnap = users.doc(documentID).snapshots();
+    return docSnap;
+  }
+
+  
+
+Future<UserCredential> signInWithGoogle() async {
+  final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
   final GoogleSignInAuthentication? googleAuth = await googleUser?.authentication;
 
-  // Create a new credential
   final credential = GoogleAuthProvider.credential(
     accessToken: googleAuth?.accessToken,
     idToken: googleAuth?.idToken,
   );
 
-  // Once signed in, return the UserCredential
+
   return await FirebaseAuth.instance.signInWithCredential(credential);
 }
 

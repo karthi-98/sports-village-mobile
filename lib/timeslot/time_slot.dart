@@ -147,7 +147,7 @@ class _MainSlotTimeWidgetState extends State<MainSlotTimeWidget> {
             padding: const EdgeInsets.symmetric(horizontal: 15,vertical: 20),
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(30),
+              borderRadius: BorderRadius.circular(10),
               boxShadow: [
                       BoxShadow(
                           color: Colors.grey.withOpacity(.3),
@@ -205,7 +205,7 @@ class _MainSlotTimeWidgetState extends State<MainSlotTimeWidget> {
                         padding:
                             EdgeInsets.symmetric(vertical: 20, horizontal: width * .3),
                         decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(30),
+                          borderRadius: BorderRadius.circular(10),
                           color: HexColor('#c41111'),
                           boxShadow: [
                               BoxShadow(
