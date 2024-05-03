@@ -1,4 +1,4 @@
-# sports_village
+# Sports Village
 
 A new Flutter project.
 
