@@ -65,7 +65,7 @@ class ConfirmPage extends StatelessWidget {
               Text(
                 "Confirm Booking",
                 style: GoogleFonts.urbanist(
-                    fontSize: 24, fontWeight: FontWeight.bold),
+                    fontSize: 20, fontWeight: FontWeight.bold),
               ),
               const SizedBox(
                 height: 20,

@@ -27,9 +27,11 @@ class Auth {
     late DocumentReference docRef;
     if(res){
        docRef =  await users.add({
+      'userName': userName,
       'email' : email,
       'phoneNumber' : '',
-      'userName': userName,
+      'isPhoneNumberVerified' : false,
+      'createdAt' : FieldValue.serverTimestamp()
     });
 
     return docRef.id;

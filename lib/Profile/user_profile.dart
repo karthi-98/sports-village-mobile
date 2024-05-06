@@ -3,7 +3,10 @@ import 'dart:ffi';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:sports_village/Firebase/auth.dart';
+import 'package:sports_village/Profile/verify_number.dart';
 
 class UserProfile extends StatelessWidget {
   const UserProfile({super.key, required this.email});
@@ -24,7 +27,17 @@ class UserProfile extends StatelessWidget {
 
     return Scaffold(
         resizeToAvoidBottomInset: false,
-        appBar: AppBar(),
+        backgroundColor: const Color.fromARGB(255, 245, 245, 245),
+        appBar: AppBar(
+          elevation: 2,
+          surfaceTintColor: Colors.white,
+          backgroundColor: Colors.white,
+          shadowColor: Colors.grey.withOpacity(.2),
+          title: const Text(
+            "Profile Page",
+            style: TextStyle(fontSize: 18),
+          ),
+        ),
         body: FutureBuilder(
             future: getUserDetails(),
             builder: (context, snapshot) {
@@ -32,9 +45,6 @@ class UserProfile extends StatelessWidget {
                 return const Center(child: CircularProgressIndicator());
               } else if (snapshot.connectionState == ConnectionState.done) {
                 if (snapshot.hasData) {
-                  // final userName = snapshot.data!['userName'];
-                  // final email = snapshot.data!['email'];
-                  // final phoneNumber = snapshot.data!['phoneNumber'];
                   return UserProfileMain(
                     documentID: documentID,
                   );
@@ -58,71 +68,172 @@ class UserProfileMain extends StatelessWidget {
     TextEditingController controller = TextEditingController();
     final size = MediaQuery.of(context).size;
 
-    Widget rowWithEdit(String inputText, int index,String userName,String phoneNumber) {
-      return Row(
-        children: [
-          Text(inputText),
-          if (!inputText.contains("Email"))
-            IconButton(
-                onPressed: () {
-                  showDialog(
-                      context: context,
-                      builder: (BuildContext context) => AlertDialog(
-                            content: TextField(
-                              controller: controller,
-                              decoration: InputDecoration(
-                                  hintText: index == 0
-                                      ? userName
-                                      : index == 1
-                                          ? phoneNumber
-                                          : ""),
-                            ),
-                            title: Text("Edit ${inputText.split(" ")[0]}"),
-                            actions: [
-                              TextButton(
-                                  onPressed: () {
-                                    if (index == 0) {
-                                      Auth().updateUserName(
-                                          controller.text, documentID);
-                                    } else {
-                                      Auth().updatePhoneNumber(
-                                          controller.text, documentID);
-                                    }
-                                    var snackBar = SnackBar(
-                            duration:  const Duration(seconds: 3),
-                              content: Text(
-                                  index == 0 ? "UserName updated successfully" : "PhoneNumber updated successfully"));
-                          ScaffoldMessenger.of(context).showSnackBar(snackBar);
-                                    Navigator.of(context).pop();
-                                  },
-                                  child: const Text("Confirm")),
-                            ],
-                          ));
-                },
-                icon: const Icon(Icons.edit))
-        ],
+    Widget rowWithEdit(
+        {required String inputText,
+        required int index,
+        required String data,
+        bool isPhoneNumberVerified = false}) {
+      return GestureDetector(
+        onTap: () {
+          showDialog(
+              context: context,
+              builder: (BuildContext context) => AlertDialog(
+                    backgroundColor: Colors.white,
+                    surfaceTintColor: Colors.white,
+                    content: TextField(
+                      keyboardType: index == 2 ? TextInputType.number : TextInputType.emailAddress,
+                      controller: controller,
+                      decoration: InputDecoration(hintText: data),
+                      inputFormatters: index == 2 ? [
+                        LengthLimitingTextInputFormatter(10),
+                        FilteringTextInputFormatter.allow(RegExp('[0-9]')),
+                      ] : [],
+                    ),
+                    title: Text("Edit ${inputText.split(" ")[0]}"),
+                    actions: [
+                      TextButton(
+
+                          onPressed:() {
+                            if (controller.text.isNotEmpty) {
+                              if (index == 0) { 
+                                Auth().updateUserName(
+                                    controller.text, documentID);
+                                var snackBar = const SnackBar(
+                                    showCloseIcon: true,
+                                    duration: Duration(seconds: 3),
+                                    content:
+                                        Text("UserName updated successfully"));
+                                ScaffoldMessenger.of(context)
+                                    .showSnackBar(snackBar);
+                                Navigator.of(context).pop();
+                              }
+                              if (index == 2 && controller.text.length == 10) {
+                                try {
+                                  Auth().updatePhoneNumber(
+                                      controller.text, documentID);
+                                  var snackBar = const SnackBar(
+                                      showCloseIcon: true,
+                                      duration: Duration(seconds: 3),
+                                      content: Text(
+                                          "Phone Number updated successfully"));
+                                  ScaffoldMessenger.of(context)
+                                      .showSnackBar(snackBar);
+
+                                  Navigator.of(context).pop();
+                                } catch (e) {}
+                              }else {
+                                 var snackBar = const SnackBar(
+                                      showCloseIcon: true,
+                                      duration: Duration(seconds: 3),
+                                      content: Text(
+                                          "Enter 10 digit number"));
+                                  ScaffoldMessenger.of(context)
+                                      .showSnackBar(snackBar);
+                              }
+                            } else {
+                              var snackBar = const SnackBar(
+                                  showCloseIcon: true,
+                                  duration: Duration(seconds: 3),
+                                  content:
+                                      Text("UserName should not be empty"));
+                              ScaffoldMessenger.of(context)
+                                  .showSnackBar(snackBar);
+                              Navigator.of(context).pop();
+                            }
+                          },
+                          child: const Text("Confirm")),
+                    ],
+                  ));
+        },
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              data.isEmpty && index == 2 ? "$inputText❗" : inputText,
+              style: const TextStyle(fontSize: 14, color: Colors.grey),
+            ),
+            Row(
+              children: [
+                Text(data,
+                    style:
+                        const TextStyle(fontSize: 16, color: Colors.black87)),
+                const SizedBox(
+                  width: 15,
+                ),
+                if (!inputText.contains("Email"))
+                  const Icon(
+                    Icons.edit,
+                    size: 16,
+                  )
+              ],
+            ),
+          ],
+        ),
       );
     }
 
     return StreamBuilder(
         stream: Auth().getUserDetailsStream(documentID),
-      builder: (context, AsyncSnapshot snapshot) {
+        builder: (context, AsyncSnapshot snapshot) {
           if (snapshot.hasData) {
-                  final userName = snapshot.data!['userName'];
-                  final email = snapshot.data!['email'];
-                  final phoneNumber = snapshot.data!['phoneNumber'];
+            final userName = snapshot.data!['userName'];
+            final email = snapshot.data!['email'];
+            final phoneNumber = snapshot.data!['phoneNumber'];
+            final isPhoneNumberVerified =
+                snapshot.data!['isPhoneNumberVerified'];
             return SingleChildScrollView(
                 child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                SizedBox(
-                  width: size.width,
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 15, vertical: 18),
+                  child: Row(
+                    children: [
+                      Icon(
+                        FontAwesomeIcons.user,
+                        size: 16,
+                      ),
+                      SizedBox(
+                        width: 10,
+                      ),
+                      Text(
+                        "User Details",
+                        style: TextStyle(
+                            fontSize: 14, fontWeight: FontWeight.w600),
+                      ),
+                    ],
+                  ),
                 ),
-                const CircleAvatar(
-                  backgroundImage: AssetImage('resources/images/indoor.jpg'),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+                  margin: const EdgeInsets.symmetric(horizontal: 12),
+                  decoration: BoxDecoration(
+                      color: Colors.white,
+                      border: Border.all(
+                          width: 2, color: Colors.grey.withOpacity(.2))),
+                  child: Column(
+                    children: [
+                      rowWithEdit(
+                          inputText: "User Name ", index: 0, data: userName),
+                      const SizedBox(
+                        height: 15,
+                      ),
+                      rowWithEdit(inputText: "Email", index: 1, data: email),
+                      const SizedBox(
+                        height: 15,
+                      ),
+                      rowWithEdit(
+                          inputText: "PhoneNumber",
+                          index: 2,
+                          data: phoneNumber,
+                          isPhoneNumberVerified: isPhoneNumberVerified),
+                      const SizedBox(
+                        height: 15,
+                      ),
+                    ],
+                  ),
                 ),
-                rowWithEdit("User Name : $userName", 0,userName,phoneNumber),
-                rowWithEdit("Email : $email", 2,userName,phoneNumber),
-                rowWithEdit("PhoneNumber : $phoneNumber", 1,userName,phoneNumber),
               ],
             ));
           }
