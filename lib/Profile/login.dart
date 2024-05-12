@@ -16,12 +16,10 @@ class _LoginPageState extends State<LoginPage> {
   String? errorMessage = '';
   bool isLogin = true;
 
-  final TextEditingController _controllerEmail = TextEditingController();
-  final TextEditingController _controllerPass = TextEditingController();
-  final TextEditingController _controllerNum = TextEditingController();
+  // final TextEditingController _controllerEmail = TextEditingController();
+  // final TextEditingController _controllerPass = TextEditingController();
+  // final TextEditingController _controllerNum = TextEditingController();
 
-
-  
   @override
   Widget build(BuildContext context) {
     return Scaffold(

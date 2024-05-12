@@ -22,6 +22,19 @@ dependencies:
   flutter_animate: ^4.5.0
   flutter_svg: ^2.0.10+1
   font_awesome_flutter: ^10.7.0
+  flutter_native_splash: ^2.4.0
+
+flutter_native_splash:
+  android: true
+  ios: true
+  web: false
+
+  color: "#ffffff"
+  image: resources/images/splash.png
+
+  android_12:
+    color: "#ffffff"
+    image: resources/images/splash.png
 
 dev_dependencies:
   flutter_test:
@@ -35,6 +48,7 @@ flutter:
 
   assets:
     - resources/images/sv_logo.png
+    - resources/images/splash.png
     - resources/images/indoor.jpg
     - resources/images/outdoor.jpg
     - resources/images/open.jpg
