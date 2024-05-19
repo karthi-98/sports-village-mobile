@@ -1,32 +1,33 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:get/get.dart';
 import 'package:intl/intl.dart';
-import 'package:sports_village/Bloc/bloc_data.dart';
-import 'package:sports_village/Bloc/bloc_events.dart';
 import 'package:sports_village/ConfirmPage/confirm_page.dart';
 import 'package:sports_village/Firebase/slot_reservation.dart';
 import 'package:sports_village/constants/others.dart';
 import 'package:sports_village/constants/themes/colors.dart';
+import 'package:sports_village/getx/slot_controller.dart';
 import 'package:sports_village/utils/colors_util.dart';
 import '../utils/time_slot_utils.dart' as time_slot_utils;
+import "../constants/themes/text_theme.dart";
 
 class TimeSlotPage extends StatefulWidget {
   final String date;
   final int arena;
-  final String weekDay;
 
   const TimeSlotPage(
       {super.key,
       required this.date,
-      required this.arena,
-      required this.weekDay});
+      required this.arena,});
 
   @override
   State<TimeSlotPage> createState() => _TimeSlotPageState();
 }
 
 class _TimeSlotPageState extends State<TimeSlotPage> {
+
+  final slotController = Get.put(SlotController());
+
   Future<List<dynamic>> getTimeSlotsDataFromFirebase() async {
     List<dynamic> tempList = await SlotReservation()
         .getSlotDetails(date: widget.date, arena: widget.arena);
@@ -40,31 +41,20 @@ class _TimeSlotPageState extends State<TimeSlotPage> {
 
   @override
   Widget build(BuildContext context) {
-    final arenaBloc = BlocProvider.of<ArenaBloc>(context);
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
         iconTheme: const IconThemeData(
           color: Colors.black, //change your color here
         ),
-        backgroundColor: AppColors.whiteLeve2,
+        backgroundColor: AppColors.whiteLeve1,
         surfaceTintColor: Colors.white,
         actions: [
-          BlocBuilder<ArenaBloc, int>(
-              bloc: arenaBloc,
-              builder: (context, arenaBlocc) {
-                return _appBarTextContainer(arenaBlocc == 0
-                    ? "Indoor Turf"
-                    : arenaBlocc == 1
-                        ? "Outdoor Turf"
-                        : "Open Ground");
-              }),
+          Text(slotController.pickedArena.value == 0 ? "Indoor Turf" : slotController.pickedArena.value == 1 ? "Outdoor Turf" : "Open Ground",style: AppTextTheme.btext16Bold,),
           const SizedBox(
             width: 20,
           ),
-          BlocBuilder<DatePickedBloc, String>(builder: (context, newDate) {
-            return _appBarTextContainer("$newDate ${widget.weekDay}");
-          }),
+          Text(slotController.pickedDate.value,style: AppTextTheme.btext16Bold,),
           const SizedBox(
             width: 20,
           ),
@@ -76,7 +66,7 @@ class _TimeSlotPageState extends State<TimeSlotPage> {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(
                 child: CircularProgressIndicator(
-                  color: Colors.red,
+                  color: AppColors.redlevel1,
                 ),
               );
             } else if (snapshot.connectionState == ConnectionState.done) {
@@ -84,7 +74,6 @@ class _TimeSlotPageState extends State<TimeSlotPage> {
                 List<int> bookedSlots = snapshot.data as List<int>;
                 return MainSlotTimeWidget(
                     bookedSlots: bookedSlots,
-                    weekDay: widget.weekDay,
                     date: widget.date);
               }
               return const Center(
@@ -93,30 +82,21 @@ class _TimeSlotPageState extends State<TimeSlotPage> {
             } else {
               return const Center(
                   child: CircularProgressIndicator(
-                color: Colors.red,
+                color: AppColors.redlevel1,
               ));
             }
           }),
     );
   }
 
-  Widget _appBarTextContainer(String text) {
-    return Text(
-      text,
-      style: const TextStyle(
-          fontSize: 14, color: Colors.black87, fontWeight: FontWeight.bold),
-    );
-  }
 }
 
 class MainSlotTimeWidget extends StatefulWidget {
   const MainSlotTimeWidget(
       {super.key,
       required this.bookedSlots,
-      required this.weekDay,
       required this.date});
 
-  final String weekDay;
   final List<int> bookedSlots;
   final String date;
 
@@ -127,6 +107,7 @@ class MainSlotTimeWidget extends StatefulWidget {
 class _MainSlotTimeWidgetState extends State<MainSlotTimeWidget> {
   List<int> pickedTimeSlots = [];
   late bool isToday;
+  final slotController = Get.put(SlotController());
 
   List<String> hoursName = [
     "Early Morning",
@@ -145,6 +126,8 @@ class _MainSlotTimeWidgetState extends State<MainSlotTimeWidget> {
 
   @override
   Widget build(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
+    final height = MediaQuery.of(context).size.height;
     int hour = int.parse(DateFormat.H().format(DateTime.now().toLocal())) * 2;
     final int mins = int.parse(DateFormat.m().format(DateTime.now().toLocal()));
     if (mins >= 30) {
@@ -154,12 +137,9 @@ class _MainSlotTimeWidgetState extends State<MainSlotTimeWidget> {
         DateFormat('dd-MM-yyyy').format(DateTime.now().toLocal()) == widget.date
             ? true
             : false;
-    final timeSlotBloc = BlocProvider.of<GlobalBloc>(context);
-    final arenaBloc = BlocProvider.of<ArenaBloc>(context);
-    final height = MediaQuery.of(context).size.height;
     return Scaffold(
       floatingActionButton: AnimatedOpacity(
-        opacity: pickedTimeSlots.length >=2 ? 1 : 0,
+        opacity: pickedTimeSlots.isNotEmpty ? 1 : 0,
         duration: const Duration(milliseconds: 100),
         child: floatingActionButtonWidget(
           "Continue",
@@ -171,13 +151,11 @@ class _MainSlotTimeWidgetState extends State<MainSlotTimeWidget> {
               ScaffoldMessenger.of(context).showSnackBar(snackBar);
             } else {
               pickedTimeSlots.sort((a, b) => a.compareTo(b));
-              timeSlotBloc.add(PickedTimeSlotsEvents(pickedTimeSlots));
+              slotController.updateSlots(pickedTimeSlots);
               Navigator.push(
                   context,
                   MaterialPageRoute(
-                      builder: (context) => ConfirmPage(
-                            weekDay: widget.weekDay,
-                          )));
+                      builder: (context) => const ConfirmPage()));
             }
           },
         ),
@@ -188,7 +166,7 @@ class _MainSlotTimeWidgetState extends State<MainSlotTimeWidget> {
           children: [
             Container(
               height: height,
-              padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 20),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
               decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(10),
@@ -203,9 +181,9 @@ class _MainSlotTimeWidgetState extends State<MainSlotTimeWidget> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    if (((hour < 11) || !isToday) && arenaBloc.state != 2)
+                    if (((hour < 11) || !isToday) && slotController.pickedArena.value != 2)
                       _heading(hoursName[0]),
-                    if (((hour < 11) || !isToday) && arenaBloc.state != 2)
+                    if (((hour < 11) || !isToday) && slotController.pickedArena.value != 2)
                       _gridViewDisplay(hourseList[0], hour, isToday),
                     if ((hour < 23) || !isToday) _heading(hoursName[1]),
                     if ((hour < 23) || !isToday)
@@ -216,57 +194,21 @@ class _MainSlotTimeWidgetState extends State<MainSlotTimeWidget> {
                     if ((hour < 37) || !isToday) _heading(hoursName[3]),
                     if ((hour < 37) || !isToday)
                       _gridViewDisplay(hourseList[3], hour, isToday),
-                    if (((hour < 47) || !isToday) && arenaBloc.state != 2)
+                    if (((hour < 47) || !isToday) && slotController.pickedArena.value != 2)
                       _heading(hoursName[4]),
-                    if (((hour < 47) || !isToday) && arenaBloc.state != 2)
+                    if (((hour < 47) || !isToday) && slotController.pickedArena.value != 2)
                       _gridViewDisplay(hourseList[4], hour, isToday),
                     const SizedBox(
                       height: 10,
                     ),
+                    if (((hour > 37) && isToday) && slotController.pickedArena.value == 2) SizedBox(
+                      width: width,
+                      height: height * .8,
+                      child: const Center(child: Text("No Slots available", style: AppTextTheme.btext16Bold,)))
                   ],
                 ),
               ),
             ),
-            // AnimatedPositioned(
-            //   duration: const Duration(milliseconds: 250),
-            //   curve: Curves.easeInOutCubic,
-            //   bottom: pickedTimeSlots.length < 2 ? -100 : 50,
-            //   left: width / 3,
-            //   child: GestureDetector(
-            //     onTap: () {
-            //       if (FirebaseAuth.instance.currentUser == null) {
-            //         var snackBar = const SnackBar(
-            //             duration: Duration(seconds: 3),
-            //             content: Text('Please go back and login to continue'));
-            //         ScaffoldMessenger.of(context).showSnackBar(snackBar);
-            //       } else {
-            //         pickedTimeSlots.sort((a, b) => a.compareTo(b));
-            //         timeSlotBloc.add(PickedTimeSlotsEvents(pickedTimeSlots));
-            //         Navigator.push(
-            //             context,
-            //             MaterialPageRoute(
-            //                 builder: (context) => ConfirmPage(
-            //                       weekDay: widget.weekDay,
-            //                     )));
-            //       }
-            //     },
-            //     child: Container(
-            //       padding: EdgeInsets.symmetric(
-            //           vertical: 15, horizontal: width * .1),
-            //       alignment: Alignment.center,
-            //       decoration: BoxDecoration(
-            //           borderRadius: BorderRadius.circular(10),
-            //           color: HexColor('#c41111'),
-            //           boxShadow: [
-            //             BoxShadow(
-            //                 color: Colors.red.withOpacity(.2),
-            //                 spreadRadius: 2,
-            //                 blurRadius: 10)
-            //           ]),
-            //       child: _buttonText("Continue"),
-            //     ),
-            //   ),
-            // ),
           ],
         ),
       ),
@@ -298,8 +240,8 @@ class _MainSlotTimeWidgetState extends State<MainSlotTimeWidget> {
         padding: const EdgeInsets.only(top: 15, bottom: 25),
         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 3,
-          mainAxisSpacing: 15,
-          crossAxisSpacing: 15,
+          mainAxisSpacing: 20,
+          crossAxisSpacing: 20,
           childAspectRatio: MediaQuery.of(context).size.width /
               (MediaQuery.of(context).size.height / 6),
         ),

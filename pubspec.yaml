@@ -1,5 +1,5 @@
 name: sports_village
-description: "A new Flutter project."
+description: "Sports Village slots bookings app"
 publish_to: 'none' 
 
 version: 1.0.0+1
@@ -18,12 +18,12 @@ dependencies:
   cloud_firestore: ^4.16.1
   google_sign_in: ^6.2.1
   intl: ^0.19.0
-  flutter_bloc: ^8.1.5
-  flutter_animate: ^4.5.0
   flutter_svg: ^2.0.10+1
   font_awesome_flutter: ^10.7.0
   flutter_native_splash: ^2.4.0
   get: ^4.6.6
+  flutter_file_downloader: ^1.2.1
+  figma_squircle: ^0.5.3
 
 flutter_native_splash:
   android: true
@@ -42,6 +42,13 @@ dev_dependencies:
     sdk: flutter
 
   flutter_lints: ^3.0.0
+  flutter_launcher_icons: "^0.13.1"
+
+flutter_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "resources/images/sv_logo.png"
+  adaptive_icon_foreground: "resources/images/sv_logo_fore.png"
 
 flutter:
 
@@ -49,11 +56,13 @@ flutter:
 
   assets:
     - resources/images/sv_logo.png
+    - resources/images/sv_logo_fore.png
     - resources/images/splash.png
     - resources/images/indoor.jpg
     - resources/images/outdoor.jpg
     - resources/images/open.jpg
     - resources/svg/profile.svg
+    - resources/svg/login.svg
 
   # fonts:
   #   - family: Schyler

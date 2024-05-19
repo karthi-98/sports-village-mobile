@@ -1,16 +1,29 @@
 import 'package:get/get.dart';
-import 'package:flutter/material.dart';
-import 'package:sports_village/Firebase/auth.dart';
-import 'package:sports_village/Homepage/date_picker.dart';
-import 'package:sports_village/Profile/user_profile.dart';
 
-class NavigationController extends GetxController { 
+class NavigationController extends GetxController {
   final Rx<int> selectedIndex = 0.obs;
+  final Rx<String> navTitle = "Sports Village".obs;
 
-  final screens = [
-    const DatePickerWidget(),
-    Container(color: Colors.red),
-    UserProfile(email: Auth().currentUser!.email!)
-  ];
+  final Rx<String> checkDate = "".obs;
+
+  updateNavigation(int index) {
+    selectedIndex.value = index;
+    if(index == 0) {
+      navTitle.value = "Sports Village";
+    }
+
+    if(index == 1) {
+      navTitle.value = "Bookings";
+    }
+
+    if(index == 2) {
+      navTitle.value = "Profile";
+    }
+  }
+
+  updateDate(String newDate) {
+    checkDate.value = newDate;
+    update();
+  }
 
 }

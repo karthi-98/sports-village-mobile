@@ -1,34 +1,33 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:sports_village/Bloc/bloc_data.dart';
-import 'package:sports_village/Bloc/bloc_states.dart';
 import 'package:sports_village/ConfirmPage/booking_confirmed.dart';
 import 'package:sports_village/Firebase/auth.dart';
 import 'package:sports_village/Firebase/slot_reservation.dart';
 import 'package:sports_village/Profile/user_profile.dart';
 import 'package:sports_village/constants/others.dart';
 import 'package:sports_village/constants/themes/colors.dart';
-import 'package:sports_village/utils/colors_util.dart';
+import 'package:sports_village/getx/navigation_controll.dart';
+import 'package:sports_village/getx/slot_controller.dart';
+import 'package:sports_village/main.dart';
+import "../constants/themes/text_theme.dart";
 import '../utils/time_slot_utils.dart' as time_slot_utils;
 
 class ConfirmPage extends StatelessWidget {
-  final String weekDay;
-  const ConfirmPage({super.key, required this.weekDay});
+  const ConfirmPage({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final slotController = Get.put(SlotController());
     final width = MediaQuery.of(context).size.width;
-    final dateBloc = BlocProvider.of<DatePickedBloc>(context);
-    final arenaBloc = BlocProvider.of<ArenaBloc>(context);
-    final timeSlotBloc = BlocProvider.of<GlobalBloc>(context);
-    final advancePay = timeSlotBloc.state.pickedTimeSlots.length * 500 ~/ 4;
-    final fullPay = timeSlotBloc.state.pickedTimeSlots.length * 500;
+    final fullPay = slotController.pickedSlots.length * 500;
+    final advancePay = fullPay ~/ 4;
+      final navController = Get.put(NavigationController());
 
     return Scaffold(
       backgroundColor: Colors.white,
       floatingActionButton: floatingActionButtonWidget(
-        "Pay Advance of Rs.$advancePay",
+        "Pay Advance of  ₹$advancePay",
         () {
           addSlot() async {
             if (await Auth().isPhoneNumberAdded()) {
@@ -36,34 +35,25 @@ class ConfirmPage extends StatelessWidget {
                   await Auth().getUserDocID(email: Auth().currentUser!.email!);
               await SlotReservation().addSlot(
                   userID: userID,
-                  dateSelected: dateBloc.state,
-                  arena: arenaBloc.state,
-                  pickedSlots: timeSlotBloc.state.pickedTimeSlots,
-                  advancePayment:
-                      ((timeSlotBloc.state.pickedTimeSlots.length * 500) ~/ 4),
+                  dateSelected: slotController.pickedDate.value,
+                  arena: slotController.pickedArena.value,
+                  pickedSlots: slotController.pickedSlots as List<int>,
+                  advancePayment:advancePay,
                   advanceStatus: true,
-                  pendingPayment: (timeSlotBloc.state.pickedTimeSlots.length *
-                          500) -
-                      ((timeSlotBloc.state.pickedTimeSlots.length * 500) ~/ 4),
+                  pendingPayment: fullPay - advancePay,
                   pendingPaymentStatus: false,
-                  fullAmount:
-                      (timeSlotBloc.state.pickedTimeSlots.length * 500));
-              Navigator.of(context).pushAndRemoveUntil(
-                  MaterialPageRoute(
-                      builder: (context) => BookingConfirmed(
-                            totalAmount:
-                                timeSlotBloc.state.pickedTimeSlots.length * 500,
-                          )),
-                  (Route<dynamic> route) => false);
+                  fullAmount: fullPay);
+                  Get.offAll(() => BookingConfirmed(totalAmount: fullPay,));
             } else {
               var snackBar = const SnackBar(
                   showCloseIcon: true,
                   duration: Duration(seconds: 3),
                   content: Text("Add your phone number to continue"));
               ScaffoldMessenger.of(context).showSnackBar(snackBar);
+              navController.updateNavigation(2);
               Navigator.of(context).push(MaterialPageRoute(
                   builder: (context) =>
-                      UserProfile(email: Auth().currentUser!.email!)));
+                      const MyHomePage(title: "Sports village",)));
             }
           }
 
@@ -71,24 +61,18 @@ class ConfirmPage extends StatelessWidget {
         },
       ),
       appBar: AppBar(
-        backgroundColor: AppColors.whiteLeve2,
+        backgroundColor: AppColors.whiteLeve1,
         surfaceTintColor: Colors.white,
         actions: [
-          BlocBuilder<ArenaBloc, int>(
-              bloc: arenaBloc,
-              builder: (context, arenaBlocc) {
-                return _appBarTextContainer(arenaBlocc == 0
-                    ? "Indoor Turf"
-                    : arenaBlocc == 1
-                        ? "Outdoor Turf"
-                        : "Open Ground");
-              }),
+          Text(slotController.pickedArena.value == 0
+              ? "Indoor Turf"
+              : slotController.pickedArena.value == 1
+                  ? "Outdoor Turf"
+                  : "Open Ground",style: AppTextTheme.btext16Bold,),
           const SizedBox(
             width: 20,
           ),
-          BlocBuilder<DatePickedBloc, String>(builder: (context, newDate) {
-            return _appBarTextContainer('$newDate $weekDay');
-          }),
+          Text(slotController.pickedDate.value,style: AppTextTheme.btext16Bold,),
           const SizedBox(
             width: 20,
           ),
@@ -101,60 +85,47 @@ class ConfirmPage extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(
+              const Text(
                 "Confirm Booking",
-                style: GoogleFonts.urbanist(
-                    fontSize: 18, fontWeight: FontWeight.bold),
+                style: AppTextTheme.btext16Bold,
               ),
               const SizedBox(
                 height: 15,
               ),
-              BlocBuilder<GlobalBloc, GlobalStates>(builder: (context, state) {
-                var data = state.pickedTimeSlots;
-                return ListView.builder(
+              ListView.builder(
                     shrinkWrap: true,
                     physics: const ClampingScrollPhysics(),
-                    itemCount: state.pickedTimeSlots.length,
+                    itemCount: slotController.pickedSlots.length,
                     itemBuilder: (context, index) {
                       late String nextIndex;
                       if (time_slot_utils.timeSlotUtils.length ==
-                          data[index] + 1) {
+                          slotController.pickedSlots[index] + 1) {
                         nextIndex = time_slot_utils.timeSlotUtils[0];
                       } else {
                         nextIndex =
-                            time_slot_utils.timeSlotUtils[data[index] + 1];
+                            time_slot_utils.timeSlotUtils[slotController.pickedSlots[index] + 1];
                       }
                       return Padding(
                         padding: const EdgeInsets.symmetric(vertical: 5),
                         child: Text(
-                          "🏏 ${time_slot_utils.timeSlotUtils[data[index]]}  -  $nextIndex -  Rs.${time_slot_utils.fees[0][0]}",
+                          "🏏 ${time_slot_utils.timeSlotUtils[slotController.pickedSlots[index]]}  -  $nextIndex -  ₹ ${time_slot_utils.fees[0][0]}",
                           style: const TextStyle(fontSize: 14),
-                        ),
-                      );
-                    });
+                        
+                      
+                        ));
               }),
               const SizedBox(
-                height: 20,
+                height: 15,
               ),
-              BlocBuilder<GlobalBloc, GlobalStates>(builder: (context, state) {
-                var totalAmount = state.pickedTimeSlots.length * 500;
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Total Amount : Rs.$totalAmount',
-                      style: const TextStyle(fontSize: 16),
-                    ),
-                    const SizedBox(
-                      height: 10,
-                    ),
-                    Text(
-                      'Advance Amount to pay: Rs.${totalAmount ~/ 4}',
-                      style: const TextStyle(fontSize: 16),
-                    ),
-                  ],
-                );
-              }),
+              const Divider(),
+              const SizedBox(
+                height: 15,
+              ),
+              Text("Advance pay:   ₹ $advancePay", style: AppTextTheme.btext16Bold,),
+              const SizedBox(
+                height: 15,
+              ),
+              Text("Total Amount:   ₹ $fullPay", style: AppTextTheme.btext16Bold,),
               const SizedBox(
                 height: 20,
               ),

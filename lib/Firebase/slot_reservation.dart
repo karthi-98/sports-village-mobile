@@ -32,7 +32,7 @@ class SlotReservation {
 
     await users.doc(userID).collection("bookedSlots").add({
       "date" : dateSelected,
-      "pickedArena" : pickedArena,
+      "pickedArena" : arena,
       "pickedSlots" : pickedSlots,
       "advancePayment" : advancePayment,
       "advanceStatus" : advanceStatus,
@@ -45,6 +45,8 @@ class SlotReservation {
 
   Future<List<int>> getSlotDetails(
       {required String date, required int arena}) async {
+        print(date);
+        print(arena.toString());
     String pickedArena = arena == 0
         ? "arena1"
         : arena == 1

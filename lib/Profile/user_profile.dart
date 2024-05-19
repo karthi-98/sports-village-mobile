@@ -1,58 +1,61 @@
-
-
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:sports_village/Firebase/auth.dart';
-import 'package:sports_village/Profile/verify_number.dart';
+import 'package:sports_village/Profile/login.dart';
+import 'package:sports_village/constants/themes/colors.dart';
 
 class UserProfile extends StatelessWidget {
-  const UserProfile({super.key, required this.email});
-
-  final String email;
+  const UserProfile({super.key});
 
   @override
   Widget build(BuildContext context) {
     late String documentID;
     Future<String> getUserDetails() async {
-      documentID = await Auth().getUserDocID(email: email);
+      documentID = await Auth().getUserDocID(email: Auth().currentUser!.email!);
       return documentID;
-      // return FirebaseFirestore.instance
-      //     .collection("users")
-      //     .doc(documentID)
-      //     .get();
     }
 
     return Scaffold(
         resizeToAvoidBottomInset: false,
         // backgroundColor: const Color.fromARGB(255, 245, 245, 245),
-          backgroundColor: Colors.white,
-        appBar: AppBar(
-          surfaceTintColor: Colors.white,
-          backgroundColor: Colors.white,
-          shadowColor: Colors.grey.withOpacity(.2),
-          title: const Text(
-            "Profile Page",
-            style: TextStyle(fontSize: 24,fontWeight: FontWeight.w600,letterSpacing: .7),
-          ),
-        ),
-        body: FutureBuilder(
-            future: getUserDetails(),
+        backgroundColor: Colors.white,
+        body: StreamBuilder(
+            stream: Auth().authStateChanges,
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator());
-              } else if (snapshot.connectionState == ConnectionState.done) {
-                if (snapshot.hasData) {
-                  return UserProfileMain(
-                    documentID: documentID,
-                  );
-                }
-
-                return const Text("No data");
               } else {
-                return const Text("Connection Issue");
+                if (snapshot.hasData) {
+                  return FutureBuilder(
+                      future: getUserDetails(),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return const Center(
+                            child: CircularProgressIndicator(
+                              color: AppColors.redlevel2,
+                            ),
+                          );
+                        } else {
+                          if (snapshot.hasData) {
+                            return UserProfileMain(
+                              documentID: documentID,
+                            );
+                          } else {
+                            return GestureDetector(
+                              onTap: () async {
+                          await Auth().signOut();
+                        },
+                              child: const Center(
+                                child: Text("Sorry no data found"),
+                              ),
+                            );
+                          }
+                        }
+                      });
+                } else {
+                  return const LoginPage();
+                }
               }
             }));
   }
@@ -65,7 +68,8 @@ class UserProfileMain extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    TextEditingController controller = TextEditingController();
+    TextEditingController userController = TextEditingController();
+    TextEditingController numberController = TextEditingController();
     final size = MediaQuery.of(context).size;
 
     Widget rowWithEdit(
@@ -75,75 +79,81 @@ class UserProfileMain extends StatelessWidget {
         bool isPhoneNumberVerified = false}) {
       return GestureDetector(
         onTap: () {
-          showDialog(
-              context: context,
-              builder: (BuildContext context) => AlertDialog(
-                    backgroundColor: Colors.white,
-                    surfaceTintColor: Colors.white,
-                    content: TextField(
-                      keyboardType: index == 2 ? TextInputType.number : TextInputType.emailAddress,
-                      controller: controller,
-                      decoration: InputDecoration(hintText: data),
-                      inputFormatters: index == 2 ? [
-                        LengthLimitingTextInputFormatter(10),
-                        FilteringTextInputFormatter.allow(RegExp('[0-9]')),
-                      ] : [],
-                    ),
-                    title: Text("Edit ${inputText.split(" ")[0]}"),
-                    actions: [
-                      TextButton(
-
-                          onPressed:() {
-                            if (controller.text.isNotEmpty) {
-                              if (index == 0) { 
-                                Auth().updateUserName(
-                                    controller.text, documentID);
-                                var snackBar = const SnackBar(
-                                    showCloseIcon: true,
-                                    duration: Duration(seconds: 3),
-                                    content:
-                                        Text("UserName updated successfully"));
-                                ScaffoldMessenger.of(context)
-                                    .showSnackBar(snackBar);
-                                Navigator.of(context).pop();
-                              }
-                              if (index == 2 && controller.text.length == 10) {
-                                try {
-                                  Auth().updatePhoneNumber(
-                                      controller.text, documentID);
+          if (index == 0 || index == 2) {
+            showDialog(
+                context: context,
+                builder: (BuildContext context) => AlertDialog(
+                      backgroundColor: Colors.white,
+                      surfaceTintColor: Colors.white,
+                      content: TextField(
+                        keyboardType: index == 2
+                            ? TextInputType.number
+                            : TextInputType.emailAddress,
+                        controller:
+                            index == 0 ? userController : numberController,
+                        decoration: InputDecoration(hintText: data),
+                        inputFormatters: index == 2
+                            ? [
+                                LengthLimitingTextInputFormatter(10),
+                                FilteringTextInputFormatter.allow(
+                                    RegExp('[0-9]')),
+                              ]
+                            : [],
+                      ),
+                      title: Text("Edit ${inputText.split(" ")[0]}"),
+                      actions: [
+                        TextButton(
+                            onPressed: () {
+                              if (index == 0) {
+                                if (userController.text.isNotEmpty) {
+                                  Auth().updateUserName(
+                                      userController.text, documentID);
                                   var snackBar = const SnackBar(
                                       showCloseIcon: true,
-                                      duration: Duration(seconds: 3),
+                                      duration: Duration(seconds: 2),
+                                      content: Text(
+                                          "UserName updated successfully"));
+                                  ScaffoldMessenger.of(context)
+                                      .showSnackBar(snackBar);
+                                  Navigator.of(context).pop();
+                                } else {
+                                  var snackBar = const SnackBar(
+                                      showCloseIcon: true,
+                                      duration: Duration(seconds: 2),
+                                      content:
+                                          Text("UserName should not be empty"));
+                                  ScaffoldMessenger.of(context)
+                                      .showSnackBar(snackBar);
+                                  Navigator.of(context).pop();
+                                }
+                              }
+                              if (index == 2) {
+                                if (numberController.text.length == 10) {
+                                  Auth().updatePhoneNumber(
+                                      numberController.text, documentID);
+                                  var snackBar = const SnackBar(
+                                      showCloseIcon: true,
+                                      duration: Duration(seconds: 2),
                                       content: Text(
                                           "Phone Number updated successfully"));
                                   ScaffoldMessenger.of(context)
                                       .showSnackBar(snackBar);
 
                                   Navigator.of(context).pop();
-                                } catch (e) {}
-                              }else {
-                                 var snackBar = const SnackBar(
+                                } else {
+                                  var snackBar = const SnackBar(
                                       showCloseIcon: true,
-                                      duration: Duration(seconds: 3),
-                                      content: Text(
-                                          "Enter 10 digit number"));
+                                      duration: Duration(seconds: 2),
+                                      content: Text("Enter 10 digit number"));
                                   ScaffoldMessenger.of(context)
                                       .showSnackBar(snackBar);
+                                }
                               }
-                            } else {
-                              var snackBar = const SnackBar(
-                                  showCloseIcon: true,
-                                  duration: Duration(seconds: 3),
-                                  content:
-                                      Text("UserName should not be empty"));
-                              ScaffoldMessenger.of(context)
-                                  .showSnackBar(snackBar);
-                              Navigator.of(context).pop();
-                            }
-                          },
-                          child: const Text("Confirm")),
-                    ],
-                  ));
+                            },
+                            child: const Text("Confirm")),
+                      ],
+                    ));
+          }
         },
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -185,33 +195,12 @@ class UserProfileMain extends StatelessWidget {
                 child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 15, vertical: 18),
-                  child: Row(
-                    children: [
-                      Icon(
-                        FontAwesomeIcons.user,
-                        size: 16,
-                      ),
-                      SizedBox(
-                        width: 10,
-                      ),
-                      Text(
-                        "User Details",
-                        style: TextStyle(
-                            fontSize: 14, fontWeight: FontWeight.w600),
-                      ),
-                    ],
-                  ),
-                ),
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+                  padding: const EdgeInsets.symmetric(horizontal: 5),
                   margin: const EdgeInsets.symmetric(horizontal: 12),
-                  decoration: BoxDecoration(
-                      color: Colors.white,
-                      border: Border.all(
-                          width: 2, color: Colors.grey.withOpacity(.2))),
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                  ),
                   child: Column(
                     children: [
                       rowWithEdit(
@@ -231,6 +220,33 @@ class UserProfileMain extends StatelessWidget {
                       const SizedBox(
                         height: 15,
                       ),
+                      const Divider(),
+                      const SizedBox(
+                        height: 15,
+                      ),
+                      GestureDetector(
+                        onTap: () async {
+                          await Auth().signOut();
+                        },
+                        child: const Row(
+                          children: [
+                            Icon(
+                              Icons.logout,
+                              color: AppColors.redlevel2,
+                            ),
+                            SizedBox(
+                              width: 10,
+                            ),
+                            Text(
+                              "Log out",
+                              style: TextStyle(
+                                  color: AppColors.redlevel2,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600),
+                            ),
+                          ],
+                        ),
+                      )
                     ],
                   ),
                 ),

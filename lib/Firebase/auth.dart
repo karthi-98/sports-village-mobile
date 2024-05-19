@@ -1,7 +1,6 @@
 import "package:cloud_firestore/cloud_firestore.dart";
 import "package:firebase_auth/firebase_auth.dart";
 import 'package:google_sign_in/google_sign_in.dart';
-import "package:sports_village/Models/users_bookedSlots.dart";
 
 class Auth {
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
@@ -82,11 +81,11 @@ class Auth {
 
   Future<dynamic> getUsersBookingList({required String dateFilter}) async {
     final docId = await getUserDocID(email: Auth().currentUser!.email ?? '' );
-    final response;
+    final QuerySnapshot<Map<String, dynamic>> response;
     if(dateFilter.isNotEmpty) {
       response = await users.doc(docId).collection("bookedSlots").where('date', isEqualTo: dateFilter).get();
     }else {
-      response = await users.doc(docId).collection('bookedSlots').get();
+      response = await users.doc(docId).collection('bookedSlots').orderBy('createdAt', descending: true).get();
     }
 
     return response.docs;

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:sports_village/Bloc/bloc_data.dart';
+import 'package:get/get.dart';
 import 'package:sports_village/constants/themes/colors.dart';
 import 'package:sports_village/constants/themes/text_theme.dart';
+import 'package:sports_village/getx/slot_controller.dart';
 import 'package:sports_village/utils/colors_util.dart';
 import "../utils/date_utils.dart" as date_util;
 import 'package:intl/intl.dart';
@@ -23,12 +23,15 @@ class _DatePickerWidgetState extends State<DatePickerWidget> {
   late String tempDate;
   int dayIndex = 0;
 
+  final slotController = Get.put(SlotController());
+
   @override
   void initState() {
     super.initState();
     currentMonthList = date_util.DateUtils.daysInMonth(currentDateTime);
     scrollController = ScrollController(initialScrollOffset: 0.0);
     tempDate = DateFormat('dd-MM-yyyy').format(currentDateTime);
+    slotController.updateDate(tempDate);
   }
 
   Widget titleView() {
@@ -51,16 +54,14 @@ class _DatePickerWidgetState extends State<DatePickerWidget> {
   }
 
   Widget topView() {
-    return SizedBox(
-      height: height * .17,
-      width: width,
-      child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            titleView(),
-            horizontalCapsuleListView(),
-          ]),
-    );
+    return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          // const Text("Sports Village", style: TextStyle(fontSize: 32,fontWeight: FontWeight.w600),),
+          // SizedBox(height: height * .02,),
+          titleView(),
+          horizontalCapsuleListView(),
+        ]);
   }
 
   Widget horizontalCapsuleListView() {
@@ -74,7 +75,7 @@ class _DatePickerWidgetState extends State<DatePickerWidget> {
         shrinkWrap: true,
         itemCount: currentMonthList.length,
         separatorBuilder: (context, index) => const SizedBox(
-          width: 10,
+          width: 8,
         ),
         itemBuilder: (BuildContext context, int index) {
           return capsuleView(index);
@@ -89,10 +90,10 @@ class _DatePickerWidgetState extends State<DatePickerWidget> {
         child: GestureDetector(
           onTap: () {
             setState(() {
-              dayIndex = index;
               currentDateTime = currentMonthList[index];
               tempDate = DateFormat("dd-MM-yyyy")
                   .format(DateTime.parse(currentDateTime.toString()));
+              slotController.updateDate(tempDate);
             });
           },
           child: Column(
@@ -156,11 +157,9 @@ class _DatePickerWidgetState extends State<DatePickerWidget> {
   Widget build(BuildContext context) {
     width = MediaQuery.of(context).size.width;
     height = MediaQuery.of(context).size.height;
-    final dateBloc = BlocProvider.of<DatePickedBloc>(context);
-    dateBloc.add(DatePickedChangeDate(date: tempDate));
     return Container(
-        margin: const EdgeInsets.symmetric(vertical: 3),
-        padding: const EdgeInsets.symmetric(horizontal: 10),
+        margin:  EdgeInsets.only(bottom: height * .01),
+        padding: const EdgeInsets.symmetric(horizontal: 18),
         color: Colors.white,
         child: topView());
   }

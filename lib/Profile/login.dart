@@ -1,12 +1,13 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:sports_village/Firebase/auth.dart';
-import 'package:sports_village/main.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:sports_village/constants/themes/colors.dart';
 
 class LoginPage extends StatefulWidget {
-  const LoginPage({super.key, required this.fromWhere});
-
-  final String fromWhere;
+  const LoginPage({super.key});
 
   @override
   State<LoginPage> createState() => _LoginPageState();
@@ -16,57 +17,53 @@ class _LoginPageState extends State<LoginPage> {
   String? errorMessage = '';
   bool isLogin = true;
 
-  // final TextEditingController _controllerEmail = TextEditingController();
-  // final TextEditingController _controllerPass = TextEditingController();
-  // final TextEditingController _controllerNum = TextEditingController();
-
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: SafeArea(
-        child: Column(
-          children: [
-            
-            // Padding(
-            //     padding: const EdgeInsets.symmetric(horizontal: 15),
-            //     child: Column(children: [
-            //       const SizedBox(
-            //         height: 15,
-            //       ),
-            //       _entryField(
-            //           "Email", _controllerEmail, const Icon(Icons.alternate_email)),
-            //           const SizedBox(
-            //         height: 15,
-            //       ),
-            //       if(!isLogin) _entryField(
-            //           "Phone Number", _controllerNum, const Icon(Icons.numbers)),
-            //       if(!isLogin) const SizedBox(
-            //         height: 15,
-            //       ),
-            //       _entryField(
-            //           "Password", _controllerPass, const Icon(Icons.password)),
-            //     ]
-            //     )
-                
-            //     ),
-                
-            // _errorMessage(),
-            // _submitButton(),
-            // _loginOrRegisterButton(),
-            ElevatedButton(
-                onPressed: () async {
-                    try {
-                      await Auth().signInWithGoogle();
-                       if (widget.fromWhere == "home") {
-                        Navigator.pop(context);
-                  }
-                    } catch (e) {
-                      debugPrint(e.toString());
-                    }
-                },
-                child: const Text("Google Authentication"))
-          ],
-        ),
+    final size = MediaQuery.of(context).size;
+    return SingleChildScrollView(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+         SizedBox(width: size.width,),
+          SizedBox(
+            height: size.height * .5,
+            width: size.width * .6,
+            child: SvgPicture.asset("resources/svg/login.svg",fit: BoxFit.contain,)),
+          GestureDetector(
+              onTap: () async {
+                try {
+                  UserCredential user = await Auth().signInWithGoogle();
+                       // ignore: use_build_context_synchronously
+                          if (user.user!.email
+                              .toString()
+                              .contains("@gmail.com")) {
+                            await Auth().createUser(
+                                email: user.user!.email.toString(),
+                                userName: user.user!.displayName.toString());
+                          }
+                } catch (e) {
+                  debugPrint(e.toString());
+                }
+              },
+              child: Container(
+                width: size.width * .7,
+                height: 45,
+                decoration: BoxDecoration(
+                  color: AppColors.redlevel2,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(width: 1, color: AppColors.redlevel2,
+                  ),
+                ),
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(FontAwesomeIcons.google,color: AppColors.whiteLeve1,size: 16,),
+                    SizedBox(width: 15,),
+                     Text("Sign in with Google", style: TextStyle(fontSize: 16,color: AppColors.whiteLeve1),),
+                  ],
+                )))
+        ],
       ),
     );
   }

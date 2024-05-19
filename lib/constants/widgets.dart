@@ -43,7 +43,7 @@ Widget buttonContainer(String text) {
     ),
     child: Text(
       text,
-      style: AppTextTheme.wtext14,
+      style: AppTextTheme.wtext14Bold,
     ),
   );
 }
